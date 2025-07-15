@@ -4,6 +4,9 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from sklearn.ensemble import RandomForestClassifier
+from PIL import Image
+import io
 
 # Set page configuration
 st.set_page_config(page_title="AgriEmpower: Smart Farming Solutions", layout="wide")
@@ -19,6 +22,40 @@ def generate_crop_data():
         "Region": ["North", "South", "East", "West"] * 7 + ["North", "South"]
     }
     return pd.DataFrame(data)
+
+# Mock data for soil prediction
+def generate_soil_data():
+    data = {
+        "Soil_Moisture": np.random.uniform(20, 80, 100),
+        "pH": np.random.uniform(5.5, 7.5, 100),
+        "Nitrogen": np.random.uniform(10, 50, 100),
+        "Phosphorus": np.random.uniform(5, 30, 100),
+        "Potassium": np.random.uniform(10, 40, 100),
+        "Fertility": np.random.choice(["Low", "Medium", "High"], 100)
+    }
+    return pd.DataFrame(data)
+
+# Mock soil fertility prediction model
+def train_soil_model():
+    soil_data = generate_soil_data()
+    X = soil_data[["Soil_Moisture", "pH", "Nitrogen", "Phosphorus", "Potassium"]]
+    y = soil_data["Fertility"]
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X, y)
+    return model
+
+# Mock crop image analysis
+def analyze_crop_image(image):
+    # Placeholder logic for crop condition (simulating ML model)
+    # In a real app, this would use a trained CNN model
+    pixel_data = np.array(image.convert("RGB"))
+    brightness = pixel_data.mean()
+    if brightness > 150:
+        return "Healthy", "Crop appears vibrant and well-maintained."
+    elif brightness > 100:
+        return "Stressed", "Crop shows signs of stress, possibly due to water or nutrient deficiency."
+    else:
+        return "Failure", "Crop shows severe damage, likely due to pests or disease."
 
 # Mock data for government schemes
 schemes_data = {
@@ -80,32 +117,83 @@ if section == "Home":
 # Crop Monitoring Section
 elif section == "Crop Monitoring":
     st.header("📊 Real-Time Crop Monitoring")
-    st.markdown("Monitor soil moisture, crop health, and pest risks with AI-driven insights.")
+    st.markdown("Monitor soil, crops, and pest risks with AI-driven insights and satellite imagery.")
     
-    # Generate and display mock data
-    crop_data = generate_crop_data()
+    # Tabs for different monitoring features
+    tab1, tab2, tab3, tab4 = st.tabs(["Soil Analysis", "Crop Trends", "Satellite View", "Crop Image Analysis"])
     
-    # Filters
-    region = st.selectbox("Select Region", ["All"] + list(crop_data["Region"].unique()))
-    if region != "All":
-        crop_data = crop_data[crop_data["Region"] == region]
+    # Tab 1: Soil Analysis
+    with tab1:
+        st.subheader("Soil Fertility Prediction")
+        st.markdown("Enter soil parameters to predict fertility.")
+        model = train_soil_model()
+        
+        with st.form("soil_form"):
+            moisture = st.slider("Soil Moisture (%)", 20.0, 80.0, 50.0)
+            ph = st.slider("pH", 5.5, 7.5, 6.5)
+            nitrogen = st.slider("Nitrogen (ppm)", 10.0, 50.0, 30.0)
+            phosphorus = st.slider("Phosphorus (ppm)", 5.0, 30.0, 15.0)
+            potassium = st.slider("Potassium (ppm)", 10.0, 40.0, 25.0)
+            submitted = st.form_submit_button("Predict Fertility")
+            
+            if submitted:
+                input_data = [[moisture, ph, nitrogen, phosphorus, potassium]]
+                prediction = model.predict(input_data)[0]
+                st.success(f"Predicted Soil Fertility: **{prediction}**")
     
-    # Visualizations
-    st.subheader("Soil Moisture Trend")
-    fig_moisture = px.line(crop_data, x="Date", y="Soil_Moisture (%)", title="Soil Moisture Over Time")
-    st.plotly_chart(fig_moisture)
+    # Tab 2: Crop Trends
+    with tab2:
+        st.subheader("Crop Health Trends")
+        crop_data = generate_crop_data()
+        region = st.selectbox("Select Region", ["All"] + list(crop_data["Region"].unique()))
+        if region != "All":
+            crop_data = crop_data[crop_data["Region"] == region]
+        
+        st.subheader("Soil Moisture Trend")
+        fig_moisture = px.line(crop_data, x="Date", y="Soil_Moisture (%)", title="Soil Moisture Over Time")
+        st.plotly_chart(fig_moisture)
+        
+        st.subheader("Crop Health Score")
+        fig_health = px.line(crop_data, x="Date", y="Crop_Health_Score", title="Crop Health Score Over Time")
+        st.plotly_chart(fig_health)
+        
+        st.subheader("Pest Risk Analysis")
+        fig_pest = px.bar(crop_data, x="Date", y="Pest_Risk (%)", title="Pest Risk Over Time")
+        st.plotly_chart(fig_pest)
+        
+        st.subheader("Summary Statistics")
+        st.write(crop_data.describe())
     
-    st.subheader("Crop Health Score")
-    fig_health = px.line(crop_data, x="Date", y="Crop_Health_Score", title="Crop Health Score Over Time")
-    st.plotly_chart(fig_health)
+    # Tab 3: Satellite View
+    with tab3:
+        st.subheader("Satellite Imagery View")
+        st.markdown("View mock satellite imagery of crop regions.")
+        st.image("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", caption="Mock Satellite View of Farmland")
+        
+        # Mock geospatial data for regions
+        geo_data = pd.DataFrame({
+            "Region": ["North", "South", "East", "West"],
+            "Latitude": [28.7041, 15.9129, 22.5726, 19.0760],
+            "Longitude": [77.1025, 79.7400, 88.3639, 72.8777],
+            "Crop_Health_Score": [85, 70, 65, 90]
+        })
+        fig_geo = px.scatter_mapbox(geo_data, lat="Latitude", lon="Longitude", size="Crop_Health_Score",
+                                    color="Crop_Health_Score", hover_name="Region",
+                                    mapbox_style="open-street-map", zoom=3)
+        st.plotly_chart(fig_geo)
     
-    st.subheader("Pest Risk Analysis")
-    fig_pest = px.bar(crop_data, x="Date", y="Pest_Risk (%)", title="Pest Risk Over Time")
-    st.plotly_chart(fig_pest)
-    
-    # Summary Stats
-    st.subheader("Summary Statistics")
-    st.write(crop_data.describe())
+    # Tab 4: Crop Image Analysis
+    with tab4:
+        st.subheader("Crop Image Analysis")
+        st.markdown("Upload an image of your crop to detect its condition.")
+        uploaded_file = st.file_uploader("Choose a crop image", type=["jpg", "png"])
+        
+        if uploaded_file is not None:
+            image = Image.open(uploaded_file)
+            st.image(image, caption="Uploaded Crop Image", use_column_width=True)
+            condition, description = analyze_crop_image(image)
+            st.write(f"**Crop Condition**: {condition}")
+            st.write(f"**Description**: {description}")
 
 # Government Schemes Section
 elif section == "Government Schemes":
@@ -159,4 +247,4 @@ elif section == "Community Reporting":
 
 # Footer
 st.markdown("---")
-st.markdown("Built with ❤️ by Swetanshu | Powered by MC")
+st.markdown("Built with ❤️ by AgriEmpower | Powered by Streamlit")
