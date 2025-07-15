@@ -247,4 +247,4 @@ elif section == "Community Reporting":
 
 # Footer
 st.markdown("---")
-st.markdown("Built with ❤️ by AgriEmpower | Powered by Streamlit")
+st.markdown("Built with ❤️ by Swetanshu | Powered by Streamlit")
