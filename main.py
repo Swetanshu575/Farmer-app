@@ -75,7 +75,7 @@ if section == "Home":
     - **Mental Health Support**: Resources to address farmer distress.
     - **Community Reporting**: Share and track local agricultural challenges.
     """)
-    st.image(r".\img\p.png", caption="Supporting resilient farming communities")
+    st.image(r"img/p.png", caption="Supporting resilient farming communities")
 
 # Crop Monitoring Section
 elif section == "Crop Monitoring":
